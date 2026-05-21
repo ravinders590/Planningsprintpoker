@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Planning Poker</title>
+    <link rel="stylesheet" href="styles.css?v=20260520g" />
+</head>
+<body>
+    <!-- Loading screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-pulse"></div>
+        <svg class="loading-robot" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="22" width="40" height="28" rx="8" fill="#1a2235"/>
+            <rect x="16" y="26" width="32" height="20" rx="5" fill="#e8edf5"/>
+            <circle cx="26" cy="36" r="5" fill="#fff" stroke="#1a2235" stroke-width="2"/>
+            <circle cx="26" cy="36" r="2" fill="#1a2235"/>
+            <circle cx="38" cy="36" r="5" fill="#fff" stroke="#1a2235" stroke-width="2"/>
+            <circle cx="38" cy="36" r="2" fill="#1a2235"/>
+            <rect x="24" y="42" width="16" height="3" rx="1.5" fill="#1a2235"/>
+            <path d="M32 22V14" stroke="#1a2235" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="32" cy="11" r="3" fill="#1a2235"/>
+        </svg>
+        <p class="loading-text">Loading game...</p>
+    </div>
+
+    <header class="topbar hidden">
+        <div class="topbar-right">
+            <div id="topbarActions" class="topbar-actions hidden">
+                <button id="btnInviteMain" class="topbar-btn primary-btn">＋ Invite players</button>
+                <button id="btnManageFacilitators" class="topbar-btn ghost-btn">👑 Facilitators</button>
+                <button id="btnToggleSpectator" class="topbar-btn ghost-btn">Toggle spectator</button>
+                <button id="btnVotingHistoryTop" class="topbar-btn ghost-btn" title="Voting history">📋 History</button>
+                <button id="btnLeaveGame" class="topbar-btn danger-btn">Cancel</button>
+                <span class="room-info">Room: <code id="roomLabel"></code></span>
+            </div>
+            <span id="userBadge" class="user-badge hidden"></span>
+        </div>
+    </header>
+
+    <!-- Step 1: Create game (settings) -->
+    <section id="createScreen" class="join">
+        <div class="card wide">
+            <h1>Create a new game</h1>
+
+            <label class="floating">
+                <span>Game's name</span>
+                <input id="gameName" type="text" maxlength="60" placeholder="e.g. FlexJobs Grooming" />
+            </label>
+
+            <label class="floating">
+                <span>Voting system</span>
+                <div class="custom-select" id="votingSelect" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                    <div class="cs-value" id="votingSelectValue">Fibonacci ( 0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, ?, ☕ )</div>
+                    <div class="cs-arrow" aria-hidden="true">▾</div>
+                    <ul class="cs-list" id="votingSelectList" role="listbox">
+                        <li role="option" data-value="fibonacci" class="selected">Fibonacci ( 0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, ?, ☕ )</li>
+                        <li role="option" data-value="modified">Modified Fibonacci ( 0, ½, 1, 2, 3, 5, 8, 13, 20, 40, 100, ?, ☕ )</li>
+                        <li role="option" data-value="tshirt">T-shirts (XS, S, M, L, XL, ?, ☕ )</li>
+                        <li role="option" data-value="powers">Powers of 2 ( 0, 1, 2, 4, 8, 16, 32, 64, ?, ☕ )</li>
+                        <li role="option" data-value="__custom__" class="cs-action">Create custom deck...</li>
+                    </ul>
+                </div>
+            </label>
+
+            <button id="btnToggleAdvanced" class="link-toggle" type="button" aria-expanded="false" aria-controls="advancedSettings">
+                Show advanced settings...
+            </button>
+
+            <div id="advancedSettings" class="advanced hidden">
+                <label class="floating">
+                    <span>Who can reveal cards</span>
+                    <select id="whoReveal">
+                        <option value="all">All players</option>
+                        <option value="mod">Moderator only</option>
+                    </select>
+                </label>
+                <p class="help">Players who are allowed to flip cards and show results.</p>
+
+                <label class="floating">
+                    <span>Who can manage issues</span>
+                    <select id="whoManage">
+                        <option value="all">All players</option>
+                        <option value="mod">Moderator only</option>
+                    </select>
+                </label>
+                <p class="help">Players who are allowed to create, delete and edit issues in the sidebar.</p>
+
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-title">Auto-reveal cards</div>
+                        <div class="setting-desc">Show cards automatically after everyone voted.</div>
+                    </div>
+                    <label class="switch"><input id="optAutoReveal" type="checkbox" /><span class="slider"></span></label>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-title">Enable fun features</div>
+                        <div class="setting-desc">Show a small celebration when the team reaches a unanimous vote.</div>
+                    </div>
+                    <label class="switch"><input id="optFun" type="checkbox" checked /><span class="slider"></span></label>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-title">Show average in the results</div>
+                        <div class="setting-desc">Include the average value in the results of the voting.</div>
+                    </div>
+                    <label class="switch"><input id="optAvg" type="checkbox" checked /><span class="slider"></span></label>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-title">Show countdown animation</div>
+                        <div class="setting-desc">A countdown is shown when revealing cards to ensure last-second votes are recorded.</div>
+                    </div>
+                    <label class="switch"><input id="optCountdown" type="checkbox" checked /><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <button id="btnCreate" class="primary block big">Create game</button>
+
+            <!-- Game History -->
+            <div id="gameHistory" class="game-history hidden">
+                <h3 class="history-title">Your games</h3>
+                <p class="history-desc">Access your created games and history. Resume games at any time.</p>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Step 2: Choose your display name -->
+    <section id="nameScreen" class="join hidden">
+        <div class="card">
+            <h1>Choose your display name</h1>
+            <label class="floating">
+                <span>Your display name</span>
+                <input id="inputName" type="text" maxlength="32" autocomplete="off" />
+            </label>
+            <div class="setting-row tight">
+                <label class="switch"><input id="inputSpectator" type="checkbox" /><span class="slider"></span></label>
+                <span class="setting-title">Join as spectator</span>
+            </div>
+            <button id="btnJoin" class="primary block big">Continue to game</button>
+        </div>
+    </section>
+
+    <!-- Step 3: Game -->
+    <section id="gameScreen" class="game hidden">
+
+        <div id="lonelyAbove" class="lonely hidden">
+            <div>Feeling lonely? 🥺</div>
+            <a id="btnInvite">Invite players</a>
+        </div>
+
+        <div class="table-wrap">
+            <div id="usersTop" class="users-row"></div>
+
+            <div class="table">
+                <div id="tablePrompt" class="table-prompt">Pick your cards!</div>
+                <button id="btnReveal" class="primary big hidden">Reveal cards</button>
+                <button id="btnReset" class="ghost big hidden">New voting</button>
+                <div id="countdown" class="countdown hidden"></div>
+            </div>
+
+            <div id="usersBottom" class="users-row"></div>
+        </div>
+
+        <div id="results" class="results hidden">
+            <div class="distribution" id="distribution"></div>
+            <div class="summary">
+                <div class="avg" id="avgBlock">
+                    <div class="avg-label">Average:</div>
+                    <div class="avg-value" id="avgValue">–</div>
+                </div>
+                <div class="agreement">
+                    <div class="avg-label">Agreement:</div>
+                    <div class="agreement-icon" id="agreementIcon">–</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="deck-hint">Choose your card 👇</div>
+        <div class="deck" id="deck"></div>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Confetti container -->
+    <div id="confetti" class="confetti hidden"></div>
+
+    <!-- Custom deck modal -->
+    <div id="customDeckModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="customDeckTitle">
+        <div class="modal wide">
+            <button class="modal-close" id="customDeckClose" aria-label="Close">&times;</button>
+            <h2 id="customDeckTitle">Create custom deck</h2>
+
+            <label class="floating">
+                <span>Deck name</span>
+                <input id="customDeckName" type="text" maxlength="40" value="My custom deck" />
+            </label>
+
+            <label class="floating">
+                <span>Deck values</span>
+                <input id="customDeckInput" type="text" maxlength="200" placeholder="e.g. 1,2,3,5,8,13" />
+            </label>
+            <p class="info-hint"><span class="info-i">ⓘ</span> Enter up to 3 characters per card, separated by commas. Emojis are welcome 🔥</p>
+
+            <h3 class="section-title">Preview</h3>
+            <p class="section-desc">This is a preview of how your deck will look.</p>
+            <div id="customDeckPreview" class="deck preview-deck"></div>
+
+            <div class="modal-actions">
+                <button id="customDeckCancel" class="ghost block">Cancel</button>
+                <button id="customDeckSave" class="primary block">Save deck</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite players modal -->
+    <div id="inviteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+        <div class="modal">
+            <button class="modal-close" id="inviteClose" aria-label="Close">&times;</button>
+            <h2 id="inviteTitle">Invite players</h2>
+
+            <label class="floating">
+                <span>Game's url</span>
+                <input id="inviteUrl" type="text" readonly />
+            </label>
+
+            <button id="inviteCopy" class="primary block">Copy invitation link</button>
+            <button id="inviteQrToggle" class="link-btn">QR Code</button>
+
+            <div id="inviteQrWrap" class="qr-wrap hidden">
+                <img id="inviteQrImg" alt="Room QR code" />
+                <p class="hint">Scan to join this room on another device.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voting history modal -->
+    <div id="votingHistoryModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="votingHistoryTitle">
+        <div class="modal wide">
+            <button class="modal-close" id="votingHistoryClose" aria-label="Close">&times;</button>
+            <h2 id="votingHistoryTitle">Voting history</h2>
+            <div id="votingHistoryContent" class="voting-history-content">
+                <table class="voting-history-table">
+                    <thead>
+                        <tr>
+                            <th>Issue name</th>
+                            <th>Result</th>
+                            <th>Agreement</th>
+                            <th>Duration</th>
+                            <th>Date</th>
+                            <th>Voted</th>
+                            <th>Players</th>
+                        </tr>
+                    </thead>
+                    <tbody id="votingHistoryBody"></tbody>
+                </table>
+                <p id="votingHistoryEmpty" class="hint hidden">No voting rounds recorded yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Facilitators modal -->
+    <div id="facilitatorsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="facilitatorsTitle">
+        <div class="modal">
+            <button class="modal-close" id="facilitatorsClose" aria-label="Close">&times;</button>
+            <h2 id="facilitatorsTitle">Manage Facilitators</h2>
+            <p class="hint">Add or remove facilitators at any time. Facilitators can reveal cards and manage issues.</p>
+            <div id="facilitatorsList" class="facilitators-list"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js?v=20260520f"></script>
+</body>
+</html>
