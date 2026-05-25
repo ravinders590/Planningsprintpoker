@@ -2,6 +2,9 @@
 (function () {
     'use strict';
 
+    // Backend server URL - change this to your deployed backend (e.g. Render)
+    const SERVER_URL = window.location.hostname === 'localhost' ? '' : 'https://sprintplanningpoker.netlify.app';
+
     const $ = (id) => document.getElementById(id);
 
     // --- Hide loading screen, reveal app ---
@@ -339,7 +342,7 @@
     const urlRoom = params.get('room');
     if (urlRoom) {
         // Validate room exists, then auto-join if we have a saved name
-        fetch('/api/rooms/' + encodeURIComponent(urlRoom)).then((res) => {
+        fetch(SERVER_URL + '/api/rooms/' + encodeURIComponent(urlRoom)).then((res) => {
             if (res.ok) {
                 pendingRoomId = urlRoom;
                 const savedName = localStorage.getItem('pp:name');
@@ -387,7 +390,7 @@
         };
         btnCreate.disabled = true;
         try {
-            const res = await fetch('/api/rooms', {
+            const res = await fetch(SERVER_URL + '/api/rooms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -416,7 +419,7 @@
         if (!pendingRoomId) { showStep('create'); return; }
         localStorage.setItem('pp:name', name);
 
-        socket = io();
+        socket = io(SERVER_URL || undefined);
         wireSocket();
         socket.emit('room:join', {
             roomId: pendingRoomId,
